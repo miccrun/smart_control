@@ -1,0 +1,12 @@
+forge "http://forge.puppetlabs.com"
+
+mod 'puppetlabs/stdlib'
+mod 'puppetlabs/mysql'
+# mod 'puppetlabs/git'
+
+#mod 'supervisor',
+#  :git => 'https://github.com/TracyWebTech/puppet-supervisor.git'
+
+# mod 'apt',
+#   :git => 'https://github.com/puppetlabs/puppetlabs-apt.git',
+#   :ref => 'feature/master/dans_refactor'

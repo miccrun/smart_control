@@ -1,0 +1,6 @@
+.DS_Store
+*.pyc
+scripts/vagrant/Puppetfile.lock
+scripts/vagrant/.tmp/
+scripts/vagrant/.vagrant/
+scripts/vagrant/modules/

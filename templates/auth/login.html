@@ -1,0 +1,40 @@
+<%inherit file="/layouts/base.html" />
+
+<%def name="css_files()">
+    ${ parent.css_files() }
+    ## <link href="/static/css/index.css" rel="stylesheet">
+</%def>
+
+<%def name="title()">Login</%def>
+<%def name="js_defer()">
+    ${ parent.js_defer() }
+</%def>
+
+<div class="col-xs-12">
+    <h2>Login</h2>
+    % if form.errors:
+    <div class="alert alert-danger">
+        <a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>
+        ${ form._errors['login'] }
+    </div>
+    % endif
+
+    <form class="form-horizontal" id="inputForm" action="/login" method="post" role="form">
+        <div class="col-xs-12">
+            % for field in form:
+            <div class="form-group ${ 'has-error' if field.errors else '' }">
+                ${ field }
+                % if field.errors:
+                <span class="help-block">${ field.errors[0] }</span>
+                % endif
+            </div>
+            % endfor
+            <input type="hidden" name="redirect" value="/" />
+        </div>
+        <div class="col-xs-12">
+            <div class="form-group">
+                <input type="submit" value="Login" class="btn btn-primary col-xs-12">
+            </div>
+        </div>
+    </form>
+</div>

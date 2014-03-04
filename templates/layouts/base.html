@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>${ self.title() }</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="apple-touch-icon" href="/static/img/icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    ${ self.css_files() }
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="row">
+        ${ next.body() }
+      </div>
+    </div>
+
+    ${ self.js_defer() }
+  </body>
+</html>
+
+<%def name="js_defer()">
+<script src="/static/js/jquery-1.11.0.min.js"> </script>
+<script src="/static/js/bootstrap.min.js"> </script>
+</%def>
+
+<%def name="css_files()">
+<link href="/static/css/bootstrap.min.css" rel="stylesheet">
+<link href="/static/css/base.css" rel="stylesheet">
+</%def>
