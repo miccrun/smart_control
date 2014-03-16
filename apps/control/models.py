@@ -47,6 +47,18 @@ class Device(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     changed = models.DateTimeField(auto_now=True)
 
+    def operate(self, operation):
+        #response = operation.command
+        operation_log = OperationLog(
+            device=self,
+            operation=operation,
+        )
+        StatusLog(
+            device=self,
+            operation=operation,
+            operation_log=operation_log,
+        )
+
     def __unicode__(self):
         return self.name
 
@@ -106,7 +118,7 @@ class DeviceOperation(models.Model):
 class OperationLog(models.Model):
     device = models.ForeignKey(Device)
     operation = models.ForeignKey(DeviceOperation)
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
         return self.operation.name
@@ -125,7 +137,7 @@ class StatusLog(models.Model):
         default='',
         blank=False,
     )
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
         return self.status.name
