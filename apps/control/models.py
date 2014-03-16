@@ -47,21 +47,35 @@ class Device(models.Model):
     changed = models.DateTimeField(auto_now=True)
 
     def operate(self, operation):
-        response = urllib2.urlopen(operation.command).read()
+        try:
+            response = urllib2.urlopen(operation.command).read()
+        except urllib2.HTTPError, e:
+            return (False, 'HTTPError = ' + str(e.code))
+        except urllib2.URLError, e:
+            return (False, 'URLError = ' + str(e.reason))
+
+        return self.save_log(operation, control_constants.LOCAL, response)
+
+    def save_log(self, operation, source, log):
         operation_log = OperationLog(
             device=self,
             operation=operation,
+            source=source,
         )
         operation_log.save()
-        print "done"
-        print json.loads(response).iteritems()
-        for status, value in json.loads(response).iteritems():
+
+        try:
+            json_data = json.loads(log)
+        except ValueError:
+            return (False, "JSON Decoding Error, bad response format")
+
+        for status, value in json_data.iteritems():
             try:
                 device_status = DeviceStatus.objects.get(
                     device=self,
                     codename=status,
                 )
-            except:
+            except DeviceStatus.DoesNotExist:
                 continue
 
             if device_status:
@@ -75,6 +89,8 @@ class Device(models.Model):
                     value=value,
                 )
                 status_log.save()
+
+        return (True, "")
 
     def __unicode__(self):
         return self.name
@@ -117,6 +133,11 @@ class DeviceOperation(models.Model):
         default='',
         blank=False,
     )
+    codename = models.CharField(
+        max_length=30,
+        default='',
+        blank=False,
+    )
     command = models.CharField(
         max_length=100,
         default='',
@@ -135,6 +156,9 @@ class DeviceOperation(models.Model):
 class OperationLog(models.Model):
     device = models.ForeignKey(Device)
     operation = models.ForeignKey(DeviceOperation)
+    source = models.PositiveSmallIntegerField(
+        choices=control_constants.OPERATION_SROUCE,
+    )
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
