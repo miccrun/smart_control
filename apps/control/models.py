@@ -1,4 +1,7 @@
 
+import json
+import urllib2
+
 from django.db import models
 
 import apps.control as control_constants
@@ -40,24 +43,38 @@ class Device(models.Model):
         max_length=100,
         default='',
     )
-    response_format = models.CharField(
-        max_length=50,
-        default='',
-    )
     created = models.DateTimeField(auto_now_add=True)
     changed = models.DateTimeField(auto_now=True)
 
     def operate(self, operation):
-        #response = operation.command
+        response = urllib2.urlopen(operation.command).read()
         operation_log = OperationLog(
             device=self,
             operation=operation,
         )
-        StatusLog(
-            device=self,
-            operation=operation,
-            operation_log=operation_log,
-        )
+        operation_log.save()
+        print "done"
+        print json.loads(response).iteritems()
+        for status, value in json.loads(response).iteritems():
+            try:
+                device_status = DeviceStatus.objects.get(
+                    device=self,
+                    codename=status,
+                )
+            except:
+                continue
+
+            if device_status:
+                device_status.value = value
+                device_status.save()
+                status_log = StatusLog(
+                    device=self,
+                    operation=operation,
+                    operation_log=operation_log,
+                    status=device_status,
+                    value=value,
+                )
+                status_log.save()
 
     def __unicode__(self):
         return self.name
@@ -73,7 +90,7 @@ class DeviceStatus(models.Model):
         default='',
         blank=False,
     )
-    code = models.CharField(
+    codename = models.CharField(
         max_length=30,
         default='',
         blank=False,
