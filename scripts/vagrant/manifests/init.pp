@@ -8,6 +8,7 @@ node default {
     class { 'mysql::bindings':
         python_enable => 1
     }
+
     class { 'mysql::server':
         root_password => 'root_password'
     }
@@ -45,15 +46,28 @@ node default {
         notify => Service["nginx"];
     }
 
-    exec {
-        "pip-install":
-            command => "/usr/bin/pip install -r /vagrant/requirements.txt",
-            require => Package[python-pip, python-mysqldb, python-dev];
+    class { 'python':
+        version    => 'system',
+        dev        => true,
+        pip        => true,
+        virtualenv => true,
     }
 
-    package { "supervisor":
-        ensure => installed,
-        require => Exec["apt-update", "pip-install"]
+    python::virtualenv { '/var/www/smartcontrol/env':
+        ensure       => present,
+        version      => 'system',
+        requirements => '/vagrant/requirements.txt',
+        distribute   => true,
+        owner        => 'vagrant',
+        group        => 'vagrant',
+        cwd          => '/var/www/smartcontrol',
+        timeout      => 0,
+    }
+
+    python::requirements { '/vagrant/requirements.txt':
+      virtualenv => '/var/www/smartcontrol/env',
+      owner      => 'vagrant',
+      group      => 'vagrant',
     }
 
     service { "supervisor":
@@ -62,10 +76,10 @@ node default {
         enable => true;
     }
 
-    file { "/etc/supervisor/conf.d/django.conf":
+    file { "/etc/supervisor/conf.d/smartcontrol.conf":
         require => Package["supervisor"],
         ensure  => present,
-        source  => "/vagrant/files/django_supervisor.conf",
+        source  => "/vagrant/files/smartcontrol.conf",
         notify  => Service["supervisor"];
     }
 

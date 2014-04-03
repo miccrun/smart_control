@@ -13,8 +13,7 @@ class system {
             "exuberant-ctags",
             "git-core",
             "build-essential",
-            "python-pip",
-            "python-dev"
+            "supervisor",
         ]:
             ensure  => "present",
             require => Exec["apt-update"];
