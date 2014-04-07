@@ -14,14 +14,7 @@ from django.views.generic import (
 import apps.control as control_constants
 from apps.control.models import (
     Device,
-    DeviceOperation,
 )
-
-
-class APIView(View):
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
-        return super(APIView, self).dispatch(request, *args, **kwargs)
 
 
 class JSONResponseMixin(object):
@@ -39,6 +32,34 @@ class JSONResponseMixin(object):
         return json.dumps(context)
 
 
+class APIView(JSONResponseMixin, View):
+    http_method_names = ['post']
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(APIView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        device_id = kwargs["device_id"]
+        print request.body
+        try:
+            device = Device.objects.get(pk=device_id)
+            (result, message) = self.action(
+                device=device,
+                data=request.body,
+                **kwargs
+            )
+        except Device.DoesNotExist:
+            result = False
+            message = "Device does not exist"
+
+        context = {
+            "response": result,
+            "message": message,
+        }
+        return self.render_to_response(context)
+
+
 #class DashboardView(LoginRequiredMixin, ListView):
 class DashboardView(TemplateView):
     template_name = 'control/dashboard.html'
@@ -49,59 +70,27 @@ class DashboardView(TemplateView):
         return context
 
 
-class TriggerView(JSONResponseMixin, APIView):
-    http_method_names = ['post']
+class OperateView(APIView):
 
-    def post(self, request, *args, **kwargs):
-        deviceID = request.GET.get("device", "")
-        operation_codename = request.GET.get("operation", "")
-        try:
-            device = Device.objects.get(pk=deviceID)
-            operation = DeviceOperation.objects.get(
-                device=device,
-                codename=operation_codename,
-            )
-            (result, message) = self.trigger(
-                device=device,
-                operation=operation,
-                event_id=kwargs.get("event_id", 0),
-                params=request.body,
-            )
-        except Device.DoesNotExist:
-            result = False
-            message = "Device does not exist"
-        except DeviceOperation.DoesNotExist:
-            result = False
-            message = "Device operation does not exist"
-
-        context = {
-            "response": result,
-            "message": message,
-        }
-        return self.render_to_response(context)
+    def action(self, device, data, *args, **kwargs):
+        return device.operate(kwargs["operation"])
 
 
-class OperateView(TriggerView):
+class OperationLogView(APIView):
 
-    def trigger(self, *args, **kwargs):
-        device = kwargs["device"]
-        operation = kwargs["operation"]
-        print kwargs
-        return device.operate(operation)
+    def action(self, device, data, *args, **kwargs):
+        return device.save_operation_log(int(kwargs["operation_log_id"]), data)
 
 
-class EventView(TriggerView):
+class EventView(APIView):
 
-    def trigger(self, *args, **kwargs):
-        device = kwargs["device"]
-        operation = kwargs["operation"]
+    def action(self, device, data, *args, **kwargs):
         event_id = int(kwargs["event_id"])
-        params = kwargs["params"]
 
         if event_id == control_constants.EVENT_TIME:
             print "time"
-            return (True, "")
+            return (True, "OK")
         elif event_id == control_constants.EVENT_TRIGGER:
-            return device.save_log(operation, control_constants.REMOTE, params)
+            return device.save_status_log(data)
         else:
             return (False, "Unknow event")

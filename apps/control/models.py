@@ -1,5 +1,6 @@
 
 import json
+import re
 import urllib2
 
 from django.db import models
@@ -39,6 +40,10 @@ class Device(models.Model):
     type = models.PositiveSmallIntegerField(
         choices=control_constants.DEVICE_CHOICES,
     )
+    format = models.CharField(
+        max_length=200,
+        default='',
+    )
     icon = models.CharField(
         max_length=100,
         default='',
@@ -46,51 +51,93 @@ class Device(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     changed = models.DateTimeField(auto_now=True)
 
-    def operate(self, operation):
+    def operate(self, operation_codename):
         try:
-            response = urllib2.urlopen(operation.command).read()
+            operation = DeviceOperation.objects.get(
+                device=self,
+                codename=operation_codename,
+            )
+        except DeviceOperation.DoesNotExist:
+            return (False, "Device operation does not exist")
+
+        operation_log = OperationLog(
+            device=self,
+            operation=operation,
+            source=control_constants.LOCAL,
+        )
+        operation_log.save()
+
+        try:
+            urllib2.urlopen(operation.command).read()
         except urllib2.HTTPError, e:
             return (False, 'HTTPError = ' + str(e.code))
         except urllib2.URLError, e:
             return (False, 'URLError = ' + str(e.reason))
 
-        return self.save_log(operation, control_constants.LOCAL, response)
+        return (True, "OK")
 
-    def save_log(self, operation, source, log):
-        operation_log = OperationLog(
-            device=self,
-            operation=operation,
-            source=source,
-        )
-        operation_log.save()
-
+    def save_operation_log(self, operation_log_id, data):
         try:
-            json_data = json.loads(log)
+            json_data = json.loads(data)
         except ValueError:
             return (False, "JSON Decoding Error, bad response format")
 
-        for status, value in json_data.iteritems():
+        if operation_log_id == 0:
             try:
-                device_status = DeviceStatus.objects.get(
+                operation = DeviceOperation.objects.get(
                     device=self,
-                    codename=status,
+                    codename=json_data.get("operation", "")
                 )
-            except DeviceStatus.DoesNotExist:
-                continue
+            except DeviceOperation.DoesNotExist:
+                return (False, "Device operation does not exist")
 
-            if device_status:
-                device_status.value = value
-                device_status.save()
-                status_log = StatusLog(
-                    device=self,
-                    operation=operation,
-                    operation_log=operation_log,
-                    status=device_status,
-                    value=value,
-                )
-                status_log.save()
+            operation_log = OperationLog(
+                device=self,
+                operation=operation,
+                source=control_constants.REMOTE,
+                success=json_data.get("result", 1),
+                trial=json_data.get("trial", 0),
+                rtt=json_data.get("rtt", 0),
+            )
+            operation_log.save()
+        else:
+            try:
+                operation_log = OperationLog.objects.get(pk=operation_log_id)
+            except OperationLog.DoesNotExist:
+                return (False, "Operation log does not exist")
 
-        return (True, "")
+            operation_log.success = json_data.get("result", 1)
+            operation_log.trial = json_data.get("trial", 0)
+            operation_log.rtt = json_data.get("rtt", 0)
+            operation_log.save()
+
+        return self.save_status_log(json_data.get("message", ""))
+
+    def save_status_log(self, data):
+        group = re.match(self.format, data)
+        if group:
+            for status, value in group.groupdict().iteritems():
+                try:
+                    device_status = DeviceStatus.objects.get(
+                        device=self,
+                        codename=status,
+                    )
+                except DeviceStatus.DoesNotExist:
+                    continue
+
+                if device_status:
+                    device_status.value = value
+                    device_status.save()
+                    status_log = StatusLog(
+                        device=self,
+                        status=device_status,
+                        value=value,
+                    )
+                    status_log.save()
+        else:
+            return (False, "Bad response format")
+
+        return (True, "OK")
 
     def __unicode__(self):
         return self.name
@@ -140,7 +187,6 @@ class DeviceOperation(models.Model):
     )
     command = models.CharField(
         max_length=100,
-        default='',
         blank=False,
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -159,6 +205,12 @@ class OperationLog(models.Model):
     source = models.PositiveSmallIntegerField(
         choices=control_constants.OPERATION_SROUCE,
     )
+    success = models.PositiveSmallIntegerField(
+        choices=control_constants.OPERATION_RESULT,
+        default=control_constants.OPERATION_FAIL,
+    )
+    trial = models.PositiveSmallIntegerField(default=0)
+    rtt = models.PositiveSmallIntegerField(default=0)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
@@ -170,8 +222,6 @@ class OperationLog(models.Model):
 
 class StatusLog(models.Model):
     device = models.ForeignKey(Device)
-    operation = models.ForeignKey(DeviceOperation)
-    operation_log = models.ForeignKey(OperationLog)
     status = models.ForeignKey(DeviceStatus)
     value = models.CharField(
         max_length=30,
@@ -185,3 +235,25 @@ class StatusLog(models.Model):
 
     class Meta:
         db_table = 'StatusLogs'
+
+
+class Config(models.Model):
+    id = models.CharField(
+        primary_key=True,
+        max_length=30,
+        default='',
+        blank=False,
+    )
+    value = models.CharField(
+        max_length=100,
+        default='',
+        blank=False,
+    )
+    created = models.DateTimeField(auto_now_add=True)
+    changed = models.DateTimeField(auto_now=True)
+
+    def __unicode__(self):
+        return self.id
+
+    class Meta:
+        db_table = 'Config'
