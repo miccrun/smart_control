@@ -13,6 +13,7 @@ from django.views.generic import (
 
 import apps.control as control_constants
 from apps.control.models import (
+    Room,
     Device,
 )
 
@@ -67,7 +68,8 @@ class DashboardView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(DashboardView, self).get_context_data(**kwargs)
-        context['data'] = 'hello world'
+        context['rooms'] = Room.objects.all()
+        context['appliances'] = Device.objects.filter(type=control_constants.APPLIANCE)
         return context
 
 

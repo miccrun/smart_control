@@ -37,7 +37,7 @@ class Device(models.Model):
         default='',
         blank=False,
     )
-    room = models.ForeignKey(Room)
+    room = models.ForeignKey(Room, related_name="devices")
     type = models.PositiveSmallIntegerField(
         choices=control_constants.DEVICE_CHOICES,
     )
@@ -159,7 +159,7 @@ class Device(models.Model):
 
 
 class DeviceStatus(models.Model):
-    device = models.ForeignKey(Device)
+    device = models.ForeignKey(Device, related_name="status")
     name = models.CharField(
         max_length=30,
         default='',
@@ -186,7 +186,7 @@ class DeviceStatus(models.Model):
 
 
 class DeviceOperation(models.Model):
-    device = models.ForeignKey(Device)
+    device = models.ForeignKey(Device, related_name="operations")
     name = models.CharField(
         max_length=30,
         default='',
