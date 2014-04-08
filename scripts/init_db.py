@@ -200,9 +200,10 @@ living_motion_sensor.save()
 living_motion_sensor_present_status = DeviceStatus(
     device=living_motion_sensor,
     name="Present",
-    codename="temperature",
+    codename="present",
     value="F",
 )
+living_motion_sensor_present_status.save()
 
 
 bed_motion_sensor = Device(
@@ -216,6 +217,7 @@ bed_motion_sensor.save()
 bed_motion_sensor_present_status = DeviceStatus(
     device=bed_motion_sensor,
     name="Present",
-    codename="temperature",
+    codename="present",
     value="F",
 )
+bed_motion_sensor_present_status.save()
