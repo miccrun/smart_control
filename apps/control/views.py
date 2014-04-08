@@ -46,7 +46,8 @@ class APIView(JSONResponseMixin, View):
             device = Device.objects.get(pk=device_id)
             (result, message) = self.action(
                 device=device,
-                data=request.body,
+                raw_data=request.body,
+                data=request.POST,
                 **kwargs
             )
         except Device.DoesNotExist:
@@ -73,24 +74,24 @@ class DashboardView(TemplateView):
 class OperateView(APIView):
 
     def action(self, device, data, *args, **kwargs):
-        return device.operate(kwargs["operation"])
+        return device.operate(kwargs["operation"], data)
 
 
 class OperationLogView(APIView):
 
-    def action(self, device, data, *args, **kwargs):
-        return device.save_operation_log(int(kwargs["operation_log_id"]), data)
+    def action(self, device, raw_data, *args, **kwargs):
+        return device.save_operation_log(int(kwargs["operation_log_id"]), raw_data)
 
 
 class EventView(APIView):
 
-    def action(self, device, data, *args, **kwargs):
+    def action(self, device, raw_data, *args, **kwargs):
         event_id = int(kwargs["event_id"])
 
         if event_id == control_constants.EVENT_TIME:
             print "time"
             return (True, "OK")
         elif event_id == control_constants.EVENT_TRIGGER:
-            return device.save_status_log(data)
+            return device.save_status_log(raw_data)
         else:
             return (False, "Unknow event")

@@ -21,3 +21,5 @@ OPERATION_RESULT = (
 
 EVENT_TIME = 1
 EVENT_TRIGGER = 2
+
+API_PATH = "http://central.micbase.com/central.php"

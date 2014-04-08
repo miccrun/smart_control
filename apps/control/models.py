@@ -1,6 +1,7 @@
 
 import json
 import re
+import urllib
 import urllib2
 
 from django.db import models
@@ -51,7 +52,7 @@ class Device(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     changed = models.DateTimeField(auto_now=True)
 
-    def operate(self, operation_codename):
+    def operate(self, operation_codename, param):
         try:
             operation = DeviceOperation.objects.get(
                 device=self,
@@ -67,8 +68,14 @@ class Device(models.Model):
         )
         operation_log.save()
 
+        data = {
+            "device": self.id,
+            "log": operation_log.id,
+            "param": operation.command % param,
+        }
+        req = urllib2.Request(control_constants.API_PATH, urllib.urlencode(data))
         try:
-            urllib2.urlopen(operation.command).read()
+            urllib2.urlopen(req)
         except urllib2.HTTPError, e:
             return (False, 'HTTPError = ' + str(e.code))
         except urllib2.URLError, e:
@@ -111,9 +118,9 @@ class Device(models.Model):
             operation_log.rtt = json_data.get("rtt", 0)
             operation_log.save()
 
-        return self.save_status_log(json_data.get("message", ""))
+        return self.save_status_log(json_data.get("message", ""), operation_log)
 
-    def save_status_log(self, data):
+    def save_status_log(self, data, operation_log=None):
         group = re.match(self.format, data)
         if group:
             for status, value in group.groupdict().iteritems():
@@ -131,6 +138,7 @@ class Device(models.Model):
                     status_log = StatusLog(
                         device=self,
                         status=device_status,
+                        operation_log=operation_log,
                         value=value,
                     )
                     status_log.save()
@@ -223,6 +231,10 @@ class OperationLog(models.Model):
 class StatusLog(models.Model):
     device = models.ForeignKey(Device)
     status = models.ForeignKey(DeviceStatus)
+    operation_log = models.ForeignKey(
+        OperationLog,
+        null=True,
+    )
     value = models.CharField(
         max_length=30,
         default='',
