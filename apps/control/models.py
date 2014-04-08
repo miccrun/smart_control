@@ -1,8 +1,8 @@
 
 import json
 import re
-import urllib
-import urllib2
+#import urllib
+#import urllib2
 
 from django.db import models
 
@@ -68,18 +68,22 @@ class Device(models.Model):
         )
         operation_log.save()
 
-        data = {
-            "device": self.id,
-            "log": operation_log.id,
-            "param": operation.command % param,
-        }
-        req = urllib2.Request(control_constants.API_PATH, urllib.urlencode(data))
-        try:
-            urllib2.urlopen(req)
-        except urllib2.HTTPError, e:
-            return (False, 'HTTPError = ' + str(e.code))
-        except urllib2.URLError, e:
-            return (False, 'URLError = ' + str(e.reason))
+        #data = {
+            #"device": self.id,
+            #"log": operation_log.id,
+            #"param": operation.command % param,
+        #}
+
+        with open("/var/www/smarthome/control_queue", "a") as file:
+            file.write("%s;%d;%s" % (self.id, operation_log.id, operation.command % param))
+
+        #req = urllib2.Request(control_constants.API_PATH, urllib.urlencode(data))
+        #try:
+            #urllib2.urlopen(req)
+        #except urllib2.HTTPError, e:
+            #return (False, 'HTTPError = ' + str(e.code))
+        #except urllib2.URLError, e:
+            #return (False, 'URLError = ' + str(e.reason))
 
         return (True, "OK")
 
