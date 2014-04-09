@@ -93,6 +93,8 @@ class EventView(APIView):
 
     def action(self, device, raw_data, *args, **kwargs):
 
+        result = device.save_status_log(raw_data)
+
         sleep_mode = Config.objects.get(id="sleep_mode").value
         night = True
 
@@ -114,8 +116,6 @@ class EventView(APIView):
             device_id="LT02",
             codename="run",
         )
-
-        result = device.save_status_log(raw_data)
 
         if sleep_mode != control_constants.True and night:
             if bed_motion_status.value == control_constants.ON and \
