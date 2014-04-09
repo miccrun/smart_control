@@ -3,6 +3,7 @@ from apps.control.models import (
     Device,
     DeviceStatus,
     DeviceOperation,
+    Config,
 )
 
 # *** Rooms ***
@@ -189,8 +190,25 @@ bed_temp_sensor_check_operation = DeviceOperation(
 bed_temp_sensor_check_operation.save()
 
 
-living_motion_sensor = Device(
+bed_motion_sensor = Device(
     id="MS01",
+    name="Motion Sensor",
+    type=2,
+    format='^(?:\w{5})(?P<present>\w{1})$',
+    room=bed_room,
+)
+bed_motion_sensor.save()
+bed_motion_sensor_present_status = DeviceStatus(
+    device=bed_motion_sensor,
+    name="Present",
+    codename="present",
+    value="F",
+)
+bed_motion_sensor_present_status.save()
+
+
+living_motion_sensor = Device(
+    id="MS02",
     name="Motion Sensor",
     type=2,
     format='^(?:\w{5})(?P<present>\w{1})$',
@@ -205,19 +223,8 @@ living_motion_sensor_present_status = DeviceStatus(
 )
 living_motion_sensor_present_status.save()
 
-
-bed_motion_sensor = Device(
-    id="MS02",
-    name="Motion Sensor",
-    type=2,
-    format='^(?:\w{5})(?P<present>\w{1})$',
-    room=bed_room,
+sleep_mode = Config(
+    id="sleep_mode",
+    value="0",
 )
-bed_motion_sensor.save()
-bed_motion_sensor_present_status = DeviceStatus(
-    device=bed_motion_sensor,
-    name="Present",
-    codename="present",
-    value="F",
-)
-bed_motion_sensor_present_status.save()
+sleep_mode.save()

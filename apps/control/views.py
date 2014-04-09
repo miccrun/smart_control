@@ -1,7 +1,9 @@
 
 import json
+import datetime
 
 from django import http
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import (
@@ -15,6 +17,8 @@ import apps.control as control_constants
 from apps.control.models import (
     Room,
     Device,
+    DeviceStatus,
+    Config,
 )
 
 
@@ -88,12 +92,84 @@ class OperationLogView(APIView):
 class EventView(APIView):
 
     def action(self, device, raw_data, *args, **kwargs):
-        event_id = int(kwargs["event_id"])
 
-        if event_id == control_constants.EVENT_TIME:
-            print "time"
-            return (True, "OK")
-        elif event_id == control_constants.EVENT_TRIGGER:
-            return device.save_status_log(raw_data)
-        else:
-            return (False, "Unknow event")
+        sleep_mode = Config.objects.get(id="sleep_mode").value
+        night = True
+
+        bed_light = Device.objects.get(id="LT01")
+        bed_motion_status = DeviceStatus.objects.get(
+            device_id="MS01",
+            codename="present",
+        )
+        bed_light_running_status = DeviceStatus.objects.get(
+            device_id="LT01",
+            codename="run",
+        )
+        living_light = Device.objects.get(id="LT02")
+        living_motion_status = DeviceStatus.objects.get(
+            device_id="MS02",
+            codename="present",
+        )
+        living_light_running_status = DeviceStatus.objects.get(
+            device_id="LT02",
+            codename="run",
+        )
+
+        result = device.save_status_log(raw_data)
+
+        if sleep_mode != control_constants.True and night:
+            if bed_motion_status.value == control_constants.ON and \
+                    bed_light_running_status.value == control_constants.OFF:
+                bed_light.operate("on", {})
+
+        if night:
+            if living_motion_status.value == control_constants.ON and \
+                    living_light_running_status.value == control_constants.OFF:
+                living_light.operate("on", {})
+
+        return result
+
+
+class TimeView(JSONResponseMixin, View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        bed_light = Device.objects.get(id="LT01")
+        bed_motion_status = DeviceStatus.objects.get(
+            device_id="MS01",
+            codename="present",
+        )
+        bed_light_running_status = DeviceStatus.objects.get(
+            device_id="LT01",
+            codename="run",
+        )
+        living_light = Device.objects.get(id="LT02")
+        living_motion_status = DeviceStatus.objects.get(
+            device_id="MS02",
+            codename="present",
+        )
+        living_light_running_status = DeviceStatus.objects.get(
+            device_id="LT02",
+            codename="run",
+        )
+
+        bed_motion_last_time = bed_motion_status.changed.astimezone(timezone.get_default_timezone()).replace(tzinfo=None)
+        if bed_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10):
+            if bed_motion_status.value == control_constants.OFF and \
+                    bed_light_running_status.value == control_constants.ON:
+                bed_light.operate("off", {})
+
+        living_motion_last_time = living_motion_status.changed.astimezone(timezone.get_default_timezone()).replace(tzinfo=None)
+        if living_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10):
+            if living_motion_status.value == control_constants.OFF and \
+                    living_light_running_status.value == control_constants.ON:
+                living_light.operate("off", {})
+
+        result = True
+        message = "OK"
+
+        context = {
+            "response": result,
+            "message": message,
+        }
+        return self.render_to_response(context)

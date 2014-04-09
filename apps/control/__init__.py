@@ -12,6 +12,12 @@ OPERATION_SROUCE = (
     (REMOTE, 'Remote'),
 )
 
+ON = "O"
+OFF = "F"
+
+True = "1"
+False = "0"
+
 OPERATION_FAIL = 0
 OPERATION_SUCCESS = 1
 OPERATION_RESULT = (
@@ -22,4 +28,4 @@ OPERATION_RESULT = (
 EVENT_TIME = 1
 EVENT_TRIGGER = 2
 
-API_PATH = "http://central.micbase.com/central.php"
+API_PATH = "http://192.168.1.148/central.php"
