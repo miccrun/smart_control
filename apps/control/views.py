@@ -42,7 +42,6 @@ def update_sun():
     sunrise_plus = city.sun(datetime.datetime.now() + datetime.timedelta(days=1))["sunrise"].astimezone(
         timezone.get_default_timezone()).replace(tzinfo=None)
     last_update = datetime.datetime.now()
-    print "updated"
 
 
 city = Astral()["Chicago"]
@@ -72,7 +71,7 @@ class ControlMixin(object):
 
         global sunset_minus, sunset, sunrise, sunrise_plus, last_update
         now = datetime.datetime.now()
-        if last_update + datetime.timedelta(seconds=10) < now:
+        if last_update + datetime.timedelta(days=1) < now:
             update_sun()
 
         if now > sunrise:
