@@ -37,16 +37,44 @@ class JSONResponseMixin(object):
         return json.dumps(context)
 
 
+class ControlMixin(object):
+    def __init__(self):
+
+        self.sleep_mode = Config.objects.get(id="sleep_mode").value
+        self.night = True
+
+        self.bed_light = Device.objects.get(id="LT01")
+        self.bed_motion_status = DeviceStatus.objects.get(
+            device_id="MS01",
+            codename="present",
+        )
+        self.bed_light_running_status = DeviceStatus.objects.get(
+            device_id="LT01",
+            codename="run",
+        )
+        self.living_light = Device.objects.get(id="LT02")
+        self.living_motion_status = DeviceStatus.objects.get(
+            device_id="MS02",
+            codename="present",
+        )
+        self.living_light_running_status = DeviceStatus.objects.get(
+            device_id="LT02",
+            codename="run",
+        )
+
+
 class APIView(JSONResponseMixin, View):
-    http_method_names = ['post']
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super(APIView, self).dispatch(request, *args, **kwargs)
 
+
+class DeviceView(APIView):
+    http_method_names = ['post']
+
     def post(self, request, *args, **kwargs):
         device_id = kwargs["device_id"]
-        print request.body
         try:
             device = Device.objects.get(pk=device_id)
             (result, message) = self.action(
@@ -77,93 +105,87 @@ class DashboardView(TemplateView):
         return context
 
 
-class OperateView(APIView):
+class OperateView(DeviceView):
 
     def action(self, device, data, *args, **kwargs):
         return device.operate(kwargs["operation"], data)
 
 
-class OperationLogView(APIView):
+class OperationLogView(DeviceView):
 
     def action(self, device, raw_data, *args, **kwargs):
         return device.save_operation_log(int(kwargs["operation_log_id"]), raw_data)
 
 
-class EventView(APIView):
+class EventView(ControlMixin, DeviceView):
 
     def action(self, device, raw_data, *args, **kwargs):
 
         result = device.save_status_log(raw_data)
 
-        sleep_mode = Config.objects.get(id="sleep_mode").value
-        night = True
+        if self.sleep_mode != control_constants.True and self.night:
+            if self.bed_motion_status.value == control_constants.ON and \
+                    self.bed_light_running_status.value == control_constants.OFF:
+                self.bed_light.operate("on", {})
 
-        bed_light = Device.objects.get(id="LT01")
-        bed_motion_status = DeviceStatus.objects.get(
-            device_id="MS01",
-            codename="present",
-        )
-        bed_light_running_status = DeviceStatus.objects.get(
-            device_id="LT01",
-            codename="run",
-        )
-        living_light = Device.objects.get(id="LT02")
-        living_motion_status = DeviceStatus.objects.get(
-            device_id="MS02",
-            codename="present",
-        )
-        living_light_running_status = DeviceStatus.objects.get(
-            device_id="LT02",
-            codename="run",
-        )
-
-        if sleep_mode != control_constants.True and night:
-            if bed_motion_status.value == control_constants.ON and \
-                    bed_light_running_status.value == control_constants.OFF:
-                bed_light.operate("on", {})
-
-        if night:
-            if living_motion_status.value == control_constants.ON and \
-                    living_light_running_status.value == control_constants.OFF:
-                living_light.operate("on", {})
+        if self.night:
+            if self.living_motion_status.value == control_constants.ON and \
+                    self.living_light_running_status.value == control_constants.OFF:
+                self.living_light.operate("on", {})
 
         return result
 
 
-class TimeView(JSONResponseMixin, View):
+class TimeView(ControlMixin, APIView):
     http_method_names = ['get']
 
     def get(self, request, *args, **kwargs):
-        bed_light = Device.objects.get(id="LT01")
-        bed_motion_status = DeviceStatus.objects.get(
-            device_id="MS01",
-            codename="present",
-        )
-        bed_light_running_status = DeviceStatus.objects.get(
-            device_id="LT01",
-            codename="run",
-        )
-        living_light = Device.objects.get(id="LT02")
-        living_motion_status = DeviceStatus.objects.get(
-            device_id="MS02",
-            codename="present",
-        )
-        living_light_running_status = DeviceStatus.objects.get(
-            device_id="LT02",
-            codename="run",
-        )
 
-        bed_motion_last_time = bed_motion_status.changed.astimezone(timezone.get_default_timezone()).replace(tzinfo=None)
+        sleep_mode = Config.objects.get(id="sleep_mode")
+
+        time = datetime.datetime.now().time()
+
+        if time.hour == 9 and time.minute == 30:
+            sleep_mode.value = control_constants.False
+            sleep_mode.save()
+
+        bed_motion_last_time = self.bed_motion_status.changed.astimezone(
+            timezone.get_default_timezone()).replace(tzinfo=None)
         if bed_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10):
-            if bed_motion_status.value == control_constants.OFF and \
-                    bed_light_running_status.value == control_constants.ON:
-                bed_light.operate("off", {})
+            if self.bed_motion_status.value == control_constants.OFF and \
+                    self.bed_light_running_status.value == control_constants.ON:
+                self.bed_light.operate("off", {})
 
-        living_motion_last_time = living_motion_status.changed.astimezone(timezone.get_default_timezone()).replace(tzinfo=None)
+        living_motion_last_time = self.living_motion_status.changed.astimezone(
+            timezone.get_default_timezone()).replace(tzinfo=None)
         if living_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10):
-            if living_motion_status.value == control_constants.OFF and \
-                    living_light_running_status.value == control_constants.ON:
-                living_light.operate("off", {})
+            if self.living_motion_status.value == control_constants.OFF and \
+                    self.living_light_running_status.value == control_constants.ON:
+                self.living_light.operate("off", {})
+
+        result = True
+        message = "OK"
+
+        context = {
+            "response": result,
+            "message": message,
+        }
+        return self.render_to_response(context)
+
+
+class ConfigView(ControlMixin, APIView):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        sleep_mode = Config.objects.get(id="sleep_mode")
+        sleep_mode_value = request.POST.get("sleep_mode", None)
+        if sleep_mode_value:
+            sleep_mode.value = sleep_mode_value
+            sleep_mode.save()
+
+            if sleep_mode.value == control_constants.True:
+                if self.bed_light_running_status.value == control_constants.ON:
+                    self.bed_light.operate("off", {})
 
         result = True
         message = "OK"
