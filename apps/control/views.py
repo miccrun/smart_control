@@ -38,7 +38,7 @@ class JSONResponseMixin(object):
 
 
 class ControlMixin(object):
-    def __init__(self):
+    def update(self):
 
         self.sleep_mode = Config.objects.get(id="sleep_mode").value
         self.night = True
@@ -122,6 +122,7 @@ class EventView(ControlMixin, DeviceView):
     def action(self, device, raw_data, *args, **kwargs):
 
         result = device.save_status_log(raw_data)
+        self.update()
 
         if self.sleep_mode != control_constants.True and self.night:
             if self.bed_motion_status.value == control_constants.ON and \
@@ -141,10 +142,10 @@ class TimeView(ControlMixin, APIView):
 
     def get(self, request, *args, **kwargs):
 
+        self.update()
+
         sleep_mode = Config.objects.get(id="sleep_mode")
-
         time = datetime.datetime.now().time()
-
         if time.hour == 9 and time.minute == 30:
             sleep_mode.value = control_constants.False
             sleep_mode.save()
@@ -177,6 +178,9 @@ class ConfigView(ControlMixin, APIView):
     http_method_names = ['post']
 
     def post(self, request, *args, **kwargs):
+
+        self.update()
+
         sleep_mode = Config.objects.get(id="sleep_mode")
         sleep_mode_value = request.POST.get("sleep_mode", None)
         if sleep_mode_value:
