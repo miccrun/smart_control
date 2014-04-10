@@ -2,6 +2,8 @@
 import json
 import datetime
 
+from astral import Astral
+
 from django import http
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -22,6 +24,31 @@ from apps.control.models import (
 )
 
 
+sunset_minus = None
+sunset = None
+sunrise = None
+sunrise_plus = None
+last_update = None
+
+
+def update_sun():
+    global sunset_minus, sunset, sunrise, sunrise_plus, last_update
+    sunset_minus = city.sun(datetime.datetime.now() - datetime.timedelta(days=1))["sunset"].astimezone(
+        timezone.get_default_timezone()).replace(tzinfo=None)
+    sunset = city.sun(datetime.datetime.now())["sunset"].astimezone(
+        timezone.get_default_timezone()).replace(tzinfo=None)
+    sunrise = city.sun(datetime.datetime.now())["sunrise"].astimezone(
+        timezone.get_default_timezone()).replace(tzinfo=None)
+    sunrise_plus = city.sun(datetime.datetime.now() + datetime.timedelta(days=1))["sunrise"].astimezone(
+        timezone.get_default_timezone()).replace(tzinfo=None)
+    last_update = datetime.datetime.now()
+    print "updated"
+
+
+city = Astral()["Chicago"]
+update_sun()
+
+
 class JSONResponseMixin(object):
     def render_to_response(self, context):
         return self.get_json_response(self.convert_context_to_json(context))
@@ -38,10 +65,20 @@ class JSONResponseMixin(object):
 
 
 class ControlMixin(object):
+
     def update(self):
 
         self.sleep_mode = Config.objects.get(id="sleep_mode").value
-        self.night = True
+
+        global sunset_minus, sunset, sunrise, sunrise_plus, last_update
+        now = datetime.datetime.now()
+        if last_update + datetime.timedelta(seconds=10) < now:
+            update_sun()
+
+        if now > sunrise:
+            self.night = sunset < now < sunrise_plus
+        else:
+            self.night = sunset_minus < now < sunrise
 
         self.bed_light = Device.objects.get(id="LT01")
         self.bed_motion_status = DeviceStatus.objects.get(
