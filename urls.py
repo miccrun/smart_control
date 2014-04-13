@@ -1,10 +1,13 @@
 
+from django.conf import settings
 from django.conf.urls import patterns, url
+from django.views.generic import RedirectView
 
 import apps.control.views as ControlViews
 import apps.auth.views as AuthViews
 
 urlpatterns = patterns('',
+    url(r'^favicon\.ico$', RedirectView.as_view(url=settings.STATIC_URL + 'img/favicon.ico')),
     url(r'^$', ControlViews.DashboardView.as_view(), name='dashboard'),
     url(r'^time$', ControlViews.TimeView.as_view(), name='time'),
     url(r'^config$', ControlViews.ConfigView.as_view(), name='config'),
