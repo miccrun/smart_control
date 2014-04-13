@@ -11,25 +11,39 @@ ${ parent.js_defer() }
 <script type="text/javascript">
   % for device in appliances:
     $("#${device.id}on").click(function(){
-      $.post("/switch/${device.id}/O");
+      $.post("/switch/${device.id}/O", function(){
+        location.reload();
+      });
     });
     $("#${device.id}off").click(function(){
-      $.post("/switch/${device.id}/F");
+      $.post("/switch/${device.id}/F", function(){
+        location.reload();
+      });
     });
     $("#${device.id}auto").click(function(){
-      $.post("/switch/${device.id}/A");
+      $.post("/switch/${device.id}/A", function(){
+        location.reload();
+      });
     });
   % endfor
 
   $("#sleep_mode_on").click(function(){
-      $.post("/config", {"sleep_mode": "1"});
+      $.post("/config", {"sleep_mode": "1"}, function(){
+        location.reload();
+      });
   });
   $("#sleep_mode_off").click(function(){
-      $.post("/config", {"sleep_mode": "0"});
+      $.post("/config", {"sleep_mode": "0"}, function(){
+        location.reload();
+      });
   });
 </script>
 
 </%def>
+
+<%
+  import apps.control as control_constants
+%>
 
 % for room in rooms:
 <div class="row">
@@ -47,13 +61,25 @@ ${ parent.js_defer() }
     </h4>
     <div class="btn-group btn-group-justified">
       <div class="btn-group">
-        <button id="${device.id}on" type="button" class="btn btn-success btn-lg">On</button>
+        % if device.get_mode() == control_constants.MODE_ON:
+          <button id="${device.id}on" type="button" class="btn btn-success btn-lg active">On</button>
+        % else:
+          <button id="${device.id}on" type="button" class="btn btn-success btn-lg">On</button>
+        % endif
       </div>
       <div class="btn-group">
-        <button id="${device.id}auto" type="button" class="btn btn-primary btn-lg">Auto</button>
+        % if device.get_mode() == control_constants.MODE_AUTO:
+          <button id="${device.id}auto" type="button" class="btn btn-primary btn-lg active">Auto</button>
+        % else:
+          <button id="${device.id}auto" type="button" class="btn btn-primary btn-lg">Auto</button>
+        % endif
       </div>
       <div class="btn-group">
-        <button id="${device.id}off" type="button" class="btn btn-danger btn-lg">Off</button>
+        % if device.get_mode() == control_constants.MODE_OFF:
+          <button id="${device.id}off" type="button" class="btn btn-danger btn-lg active">Off</button>
+        % else:
+          <button id="${device.id}off" type="button" class="btn btn-danger btn-lg">Off</button>
+        % endif
       </div>
     </div>
   </div>
