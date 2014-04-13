@@ -5,6 +5,15 @@ DEVICE_CHOICES = (
     (SENSOR, 'Sensor'),
 )
 
+MODE_ON = "O"
+MODE_OFF = "F"
+MODE_AUTO = "A"
+DEVICE_MODES = (
+    (MODE_ON, 'On'),
+    (MODE_OFF, 'Off'),
+    (MODE_AUTO, 'Auto'),
+)
+
 LOCAL = 1
 REMOTE = 2
 OPERATION_SROUCE = (

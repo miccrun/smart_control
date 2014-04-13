@@ -23,6 +23,13 @@ ac1 = Device(
     room=living_room,
 )
 ac1.save()
+ac1_mode_status = DeviceStatus(
+    device=ac1,
+    name="Mode",
+    codename="mode",
+    value="A",
+)
+ac1_mode_status.save()
 ac1_running_status = DeviceStatus(
     device=ac1,
     name="Running",
@@ -60,6 +67,13 @@ bed_light = Device(
     room=bed_room,
 )
 bed_light.save()
+bed_light_mode_status = DeviceStatus(
+    device=bed_light,
+    name="Mode",
+    codename="mode",
+    value="A",
+)
+bed_light_mode_status.save()
 bed_light_running_status = DeviceStatus(
     device=bed_light,
     name="Running",
@@ -98,6 +112,13 @@ living_light = Device(
     room=living_room,
 )
 living_light.save()
+living_light_mode_status = DeviceStatus(
+    device=living_light,
+    name="Mode",
+    codename="mode",
+    value="A",
+)
+living_light_mode_status.save()
 living_light_running_status = DeviceStatus(
     device=living_light,
     name="Running",
@@ -228,3 +249,8 @@ sleep_mode = Config(
     value="0",
 )
 sleep_mode.save()
+travel_mode = Config(
+    id="travel_mode",
+    value="0",
+)
+travel_mode.save()

@@ -53,6 +53,21 @@ class Device(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     changed = models.DateTimeField(auto_now=True)
 
+    def set_mode(self, new_mode):
+        mode = DeviceStatus.objects.get(
+            device=self,
+            codename="mode",
+        )
+        mode.value = new_mode
+        mode.save()
+
+    def get_mode(self):
+        mode = DeviceStatus.objects.get(
+            device=self,
+            codename="mode",
+        )
+        return mode.value
+
     def operate(self, operation_codename, param):
         try:
             operation = DeviceOperation.objects.get(

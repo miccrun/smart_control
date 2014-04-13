@@ -68,6 +68,7 @@ class ControlMixin(object):
     def update(self):
 
         self.sleep_mode = Config.objects.get(id="sleep_mode").value
+        self.travel_mode = Config.objects.get(id="travel_mode").value
 
         global sunset_minus, sunset, sunrise, sunrise_plus, last_update
         now = datetime.datetime.now()
@@ -131,13 +132,18 @@ class DeviceView(APIView):
 
 
 #class DashboardView(LoginRequiredMixin, ListView):
-class DashboardView(TemplateView):
+class DashboardView(ControlMixin, TemplateView):
     template_name = 'control/dashboard.html'
 
     def get_context_data(self, **kwargs):
+        global sunrise, sunset
+
+        self.update()
         context = super(DashboardView, self).get_context_data(**kwargs)
         context['rooms'] = Room.objects.all()
         context['appliances'] = Device.objects.filter(type=control_constants.APPLIANCE)
+        context['sunrise'] = sunrise
+        context['sunset'] = sunset
         return context
 
 
@@ -145,6 +151,22 @@ class OperateView(DeviceView):
 
     def action(self, device, data, *args, **kwargs):
         return device.operate(kwargs["operation"], data)
+
+
+class SwitchView(DeviceView):
+
+    def action(self, device, data, *args, **kwargs):
+        switch = kwargs["switch"]
+
+        device.set_mode(switch)
+        if switch == control_constants.MODE_ON:
+            return device.operate("on", data)
+        elif switch == control_constants.MODE_OFF:
+            return device.operate("off", data)
+        elif switch == control_constants.MODE_AUTO:
+            return (True, "OK")
+        else:
+            return (False, "Unknown Switch Mode")
 
 
 class OperationLogView(DeviceView):
@@ -160,14 +182,20 @@ class EventView(ControlMixin, DeviceView):
         result = device.save_status_log(raw_data)
         self.update()
 
-        if self.sleep_mode != control_constants.True and self.night:
-            if self.bed_motion_status.value == control_constants.ON and \
-                    self.bed_light_running_status.value == control_constants.OFF:
+        if self.travel_mode != control_constants.True:
+            if (
+                    self.bed_light.get_mode() == control_constants.MODE_AUTO and
+                    self.sleep_mode != control_constants.True and
+                    self.night and
+                    self.bed_motion_status.value == control_constants.ON and
+                    self.bed_light_running_status.value == control_constants.OFF):
                 self.bed_light.operate("on", {})
 
-        if self.night:
-            if self.living_motion_status.value == control_constants.ON and \
-                    self.living_light_running_status.value == control_constants.OFF:
+            if (
+                    self.living_light.get_mode() == control_constants.MODE_AUTO and
+                    self.night and
+                    self.living_motion_status.value == control_constants.ON and
+                    self.living_light_running_status.value == control_constants.OFF):
                 self.living_light.operate("on", {})
 
         return result
@@ -186,18 +214,24 @@ class TimeView(ControlMixin, APIView):
             sleep_mode.value = control_constants.False
             sleep_mode.save()
 
-        bed_motion_last_time = self.bed_motion_status.changed.astimezone(
-            timezone.get_default_timezone()).replace(tzinfo=None)
-        if bed_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10):
-            if self.bed_motion_status.value == control_constants.OFF and \
-                    self.bed_light_running_status.value == control_constants.ON:
+        if self.travel_mode != control_constants.True:
+
+            bed_motion_last_time = self.bed_motion_status.changed.astimezone(
+                timezone.get_default_timezone()).replace(tzinfo=None)
+            if (
+                    self.bed_light.get_mode() == control_constants.MODE_AUTO and
+                    bed_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10) and
+                    self.bed_motion_status.value == control_constants.OFF and
+                    self.bed_light_running_status.value == control_constants.ON):
                 self.bed_light.operate("off", {})
 
-        living_motion_last_time = self.living_motion_status.changed.astimezone(
-            timezone.get_default_timezone()).replace(tzinfo=None)
-        if living_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10):
-            if self.living_motion_status.value == control_constants.OFF and \
-                    self.living_light_running_status.value == control_constants.ON:
+            living_motion_last_time = self.living_motion_status.changed.astimezone(
+                timezone.get_default_timezone()).replace(tzinfo=None)
+            if (
+                    self.living_light.get_mode() == control_constants.MODE_AUTO and
+                    living_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10) and
+                    self.living_motion_status.value == control_constants.OFF and
+                    self.living_light_running_status.value == control_constants.ON):
                 self.living_light.operate("off", {})
 
         result = True

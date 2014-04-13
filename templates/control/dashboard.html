@@ -10,11 +10,15 @@ ${ parent.css_files() }
 ${ parent.js_defer() }
 <script type="text/javascript">
   % for device in appliances:
-    % for operation in device.operations.all():
-      $("#${device.id}${operation.codename}").click(function(){
-        $.post("/operate/${device.id}/${operation.codename}");
-      });
-    % endfor
+    $("#${device.id}on").click(function(){
+      $.post("/switch/${device.id}/O");
+    });
+    $("#${device.id}off").click(function(){
+      $.post("/switch/${device.id}/F");
+    });
+    $("#${device.id}auto").click(function(){
+      $.post("/switch/${device.id}/A");
+    });
   % endfor
 
   $("#sleep_mode_on").click(function(){
@@ -28,34 +32,68 @@ ${ parent.js_defer() }
 </%def>
 
 % for room in rooms:
-<div>
-  <legend>${room.name}</legend>
+<div class="row">
+  <legend class="text-center">${room.name}</legend>
   % for device in room.devices.filter(type=1):
   <div class="col-lg-6">
-    <h4>${device.name}</h4>
-    <div class="btn-group btn-group-justified">
-      % for operation in device.operations.all():
-      <div class="btn-group">
-        <button id="${device.id}${operation.codename}" type="button" class="btn btn-default btn-lg">${operation.name}</button>
+    <h4>${device.name}
+      <div class="pull-right">
+        % if device.status.get(codename="run").value == "O":
+        <span class="label label-success">On</span>
+        % else:
+        <span class="label label-danger">Off</span>
+        % endif
       </div>
-      % endfor
+    </h4>
+    <div class="btn-group btn-group-justified">
+      <div class="btn-group">
+        <button id="${device.id}on" type="button" class="btn btn-success btn-lg">On</button>
+      </div>
+      <div class="btn-group">
+        <button id="${device.id}auto" type="button" class="btn btn-primary btn-lg">Auto</button>
+      </div>
+      <div class="btn-group">
+        <button id="${device.id}off" type="button" class="btn btn-danger btn-lg">Off</button>
+      </div>
     </div>
   </div>
   % endfor
 </div>
+</br>
 % endfor
 
-<div>
-  <legend>Config</legend>
+<div class="row">
+  <legend class="text-center">Config</legend>
   <div class="col-lg-6">
     <h4>Sleep Mode</h4>
     <div class="btn-group btn-group-justified">
       <div class="btn-group">
-        <button id="sleep_mode_on" type="button" class="btn btn-default btn-lg">On</button>
+        <button id="sleep_mode_on" type="button" class="btn btn-success btn-lg">On</button>
       </div>
       <div class="btn-group">
-        <button id="sleep_mode_off" type="button" class="btn btn-default btn-lg">Off</button>
+        <button id="sleep_mode_off" type="button" class="btn btn-danger btn-lg">Off</button>
       </div>
     </div>
+  </div>
+
+  <div class="col-lg-6">
+    <h4>Travel Mode</h4>
+    <div class="btn-group btn-group-justified">
+      <div class="btn-group">
+        <button id="travel_mode_on" type="button" class="btn btn-success btn-lg">On</button>
+      </div>
+      <div class="btn-group">
+        <button id="travel_mode_off" type="button" class="btn btn-danger btn-lg">Off</button>
+      </div>
+    </div>
+  </div>
+</div>
+</br>
+
+<div class="row">
+  <legend class="text-center">Info</legend>
+  <div class="col-lg-6">
+    <p>Sunrise: ${sunrise}</p>
+    <p>Sunset: ${sunset}</p>
   </div>
 </div>
