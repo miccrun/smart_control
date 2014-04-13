@@ -220,7 +220,7 @@ class TimeView(ControlMixin, APIView):
                 timezone.get_default_timezone()).replace(tzinfo=None)
             if (
                     self.bed_light.get_mode() == control_constants.MODE_AUTO and
-                    bed_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10) and
+                    (bed_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10) or not self.night) and
                     self.bed_motion_status.value == control_constants.OFF and
                     self.bed_light_running_status.value == control_constants.ON):
                 self.bed_light.operate("off", {})
@@ -229,7 +229,7 @@ class TimeView(ControlMixin, APIView):
                 timezone.get_default_timezone()).replace(tzinfo=None)
             if (
                     self.living_light.get_mode() == control_constants.MODE_AUTO and
-                    living_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10) and
+                    (living_motion_last_time < datetime.datetime.now() - datetime.timedelta(minutes=10) or not self.night) and
                     self.living_motion_status.value == control_constants.OFF and
                     self.living_light_running_status.value == control_constants.ON):
                 self.living_light.operate("off", {})
