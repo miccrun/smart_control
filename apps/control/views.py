@@ -72,7 +72,7 @@ class ControlMixin(object):
 
         global sunset_minus, sunset, sunrise, sunrise_plus, last_update
         now = datetime.datetime.now()
-        if last_update + datetime.timedelta(days=1) < now:
+        if last_update + datetime.timedelta(hours=1) < now:
             update_sun()
 
         if now > sunrise:

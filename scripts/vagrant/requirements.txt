@@ -4,3 +4,5 @@ Mako
 djmako
 uwsgi
 django-nose
+astral
+pytz
