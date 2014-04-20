@@ -86,7 +86,7 @@ class Device(models.Model):
 
         if settings.LOCAL_MODE:
             with open("/var/www/smarthome/control_queue", "a") as file:
-                file.write("%s;%d;%s" % (self.id, operation_log.id, operation.command % param))
+                file.write("%s;%d;%s\n" % (self.id, operation_log.id, operation.command % param))
         else:
             data = {
                 "device": self.id,
