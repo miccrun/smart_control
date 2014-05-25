@@ -150,7 +150,7 @@ living_light_check_operation.save()
 
 
 living_temp_sensor = Device(
-    id="TS01",
+    id="TS02",
     name="Temperature Sensor",
     type=2,
     format='^(?:\w{5})(?P<temperature>\d{2}),(?P<humidity>\d{2})$',
@@ -181,7 +181,7 @@ living_temp_sensor_check_operation.save()
 
 
 bed_temp_sensor = Device(
-    id="TS02",
+    id="TS01",
     name="Temperature Sensor",
     type=2,
     format='^(?:\w{5})(?P<temperature>\d{2}),(?P<humidity>\d{2})$',
