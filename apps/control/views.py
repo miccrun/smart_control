@@ -76,9 +76,9 @@ class ControlMixin(object):
             update_sun()
 
         if now > sunrise:
-            self.night = sunset < now < sunrise_plus
+            self.night = sunset - datetime.timedelta(minutes=30) < now < sunrise_plus
         else:
-            self.night = sunset_minus < now < sunrise
+            self.night = sunset_minus - datetime.timedelta(minutes=30) < now < sunrise
 
         self.bed_light = Device.objects.get(id="LT01")
         self.bed_motion_status = DeviceStatus.objects.get(
